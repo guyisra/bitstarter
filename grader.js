@@ -86,20 +86,22 @@ if(require.main == module) {
     program
         .option('-c, --checks <check_file>', 'Path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT)
         .option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists), HTMLFILE_DEFAULT)
-        .option('-u, --url <url>', 'Path to some url to check', null, URL_DEFAULT)
+        .option('-u, --url <url>', 'Path to some url to check', null, null)
         .parse(process.argv);
-    
     if (program.url){
-	rest.get(program.url).on('complete',function(response){
-	 var checkJson=checkStr(response, program.checks);
-     });
+    	rest.get(program.url).on('complete',function(response){
+            var checkJson=checkStr(response, program.checks);
+            var outJson = JSON.stringify(checkJson, null, 4);
+            console.log(outJson);
+         });
     }
 
     else{
         var checkJson = checkHtmlFile(program.file, program.checks);
+        var outJson = JSON.stringify(checkJson, null, 4);
+        console.log(outJson);
     }
-    var outJson = JSON.stringify(checkJson, null, 4);
-    console.log(outJson);
+
 
 } else {
     exports.checkHtmlFile = checkHtmlFile;
