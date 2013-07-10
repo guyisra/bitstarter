@@ -1,4 +1,4 @@
-[1;5s[1;5s#!/usr/bin/env node
+#!/usr/bin/env node
 /*
 Automatically grade files for the presence of specified HTML tags/attributes.
 Uses commander.js and cheerio. Teaches command line application development
@@ -26,6 +26,9 @@ var program = require('commander');
 var cheerio = require('cheerio');
 var HTMLFILE_DEFAULT = "index.html";
 var CHECKSFILE_DEFAULT = "checks.json";
+var rest = require('restler');
+var URL_DEFAULT = 'http://intense-depths-1284.heroku.com';
+
 
 var assertFileExists = function(infile) {
     var instr = infile.toString();
@@ -37,6 +40,19 @@ var assertFileExists = function(infile) {
     return instr;
 };
 
+var assertUrlResponds = function(url){
+    var urlToCheck= url.toString();
+    rest.get(urlToCheck).on('complete', function(data, response){
+	if (response.statusCode == 200){
+	    return urlToCheck;
+	}
+	else{
+	    console.log("%s does not respond very well", urlToCheck);
+	    process.exit(1);
+	}
+    });
+};
+
 var cheerioHtmlFile = function(htmlfile) {
     return cheerio.load(fs.readFileSync(htmlfile));
 };
@@ -45,6 +61,24 @@ var loadChecks = function(checksfile) {
     return JSON.parse(fs.readFileSync(checksfile));
 };
 
+var CheerioURL = function(url){
+var resp ="";
+    rest.get(url).on('complete',function(response){
+      resp = response;
+});
+    return cheerio.load(resp);
+};
+var CheckUrl = function(url, checksfile){
+    $ = cheerioURL(url);
+    var checks = loadChecks(checksfile).sort();
+    var out = {};
+    for (var ii in checks){
+	var present = $(checks[ii]).length > 0;
+	
+	out[checks[ii]] = present;
+    }
+    return out;
+};
 var checkHtmlFile = function(htmlfile, checksfile) {
     $ = cheerioHtmlFile(htmlfile);
     var checks = loadChecks(checksfile).sort();
@@ -66,10 +100,18 @@ if(require.main == module) {
     program
         .option('-c, --checks <check_file>', 'Path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT)
         .option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists), HTMLFILE_DEFAULT)
+        .option('-u, --url <url>', 'Path to some url to check', clone(assertUrlResponds), URL_DEFAULT)
         .parse(process.argv);
+if (program.url){
+ var checkJson = checkURL(program.url);
+}
+
+else{
     var checkJson = checkHtmlFile(program.file, program.checks);
+}
     var outJson = JSON.stringify(checkJson, null, 4);
     console.log(outJson);
+
 } else {
     exports.checkHtmlFile = checkHtmlFile;
 }
